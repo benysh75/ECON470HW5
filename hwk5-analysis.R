@@ -104,10 +104,9 @@ q4.plot <- q4.data %>%
 
 q5.data <- final.data %>%
   filter(expand_year == 2014 | is.na(expand_year), !is.na(expand_ever), year %in% c(2012, 2015)) %>%
-  mutate(uninsured_rate = uninsured / adult_pop) %>%
   group_by(year, expand_ever) %>%
-  summarise(avg_uninsured_rate = mean(uninsured_rate)) %>%
-  pivot_wider(names_from = year, values_from = avg_uninsured_rate) %>%
+  summarise(avg_perc_unins = mean(perc_unins)) %>%
+  pivot_wider(names_from = year, values_from = avg_perc_unins) %>%
   arrange(desc(expand_ever))
 
 ## Question 6 Standard DD Regression Estimator ---------------------------------
@@ -177,11 +176,11 @@ q9.plot <- q9.data %>%
 
 mod.twfe.all <- feols(fm = perc_unins ~ i(time_to_treat, expand_ever, ref = -1) | State + year,
                       cluster = ~State,
-                      data = reg.dat.all)
+                      data = reg.data.all)
 
 q10.data <- data.frame(mod.twfe.all$coeftable) %>%
   select(estimate = Estimate, std.error = Std..Error) %>%
-  mutate(year = c(-3:-2, 0:5)) %>%
+  mutate(year = c(-4:-2, 0:5)) %>%
   rbind(., "time_to_treat::-1:expand_ever" = c(0, 0, -1))
 
 q10.plot <- q10.data %>%
