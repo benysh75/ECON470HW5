@@ -161,7 +161,7 @@ q9.plot <- q9.data %>%
   geom_hline(yintercept = 0, color = "black", linetype = 1) +
   geom_vline(xintercept = 2013, color = "black", linetype = 2) +
   geom_errorbar(aes(x = year, ymin = estimate - 1.96 * std.error, ymax = estimate + 1.96 * std.error), width = .1) +
-  labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - States that Expanded in 2014 or Never Expanded") +
+  labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - States that Expanded in 2014") +
   theme_bw() + theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
   theme(
     plot.title = element_text(size = 12, color = "black", hjust = 0.5),
@@ -198,7 +198,7 @@ q10.plot <- q10.data %>%
   geom_hline(yintercept = 0, color = "black", linetype = 1) +
   geom_vline(xintercept = -1, color = "black", linetype = 2) +
   geom_errorbar(aes(x = year, ymin = estimate - 1.96 * std.error, ymax = estimate + 1.96 * std.error), width = .1, position = position_dodge(width = 0.5)) +
-  labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - All States") +
+  labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - All ExpansionStates") +
   theme_bw() + theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
   theme(
     plot.title = element_text(size = 12, color = "black", hjust = 0.5),
