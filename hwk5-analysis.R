@@ -102,40 +102,34 @@ q4.plot <- q4.data %>%
 
 ## Question 5 Avg % of uninsured in 2012/2015, for expansion/non-expansion -----
 
-q5.data <- final.data %>%
-  filter(expand_year == 2014 | is.na(expand_year), !is.na(expand_ever), year %in% c(2012, 2015)) %>%
-  group_by(year, expand_ever) %>%
-  summarise(avg_perc_unins = mean(perc_unins)) %>%
-  pivot_wider(names_from = year, values_from = avg_perc_unins) %>%
-  arrange(desc(expand_ever))
+dd.table <- final.data %>%
+  filter(expand_year == 2014 | is.na(expand_year)) %>%
+  filter(year %in% c(2012, 2015)) %>%
+  group_by(expand_ever, year) %>%
+  summarise(avg_perc_unins = mean(perc_unins))
+
+q5.data <- pivot_wider(dd.table, names_from = "year", names_prefix = "year", values_from = "avg_perc_unins") %>%
+  ungroup() %>%
+  mutate(expand_ever = case_when(
+    expand_ever == FALSE ~ "Non-Expansion",
+    expand_ever == TRUE ~ "Expansion")
+  ) %>% 
+  rename(Group = expand_ever, `Pre-Period` = year2012, `Post-Period` = year2015)
 
 ## Question 6 Standard DD Regression Estimator ---------------------------------
 
 reg.data <- final.data %>%
-  filter(expand_year == 2014 | is.na(expand_year), !is.na(expand_ever)) %>%
-  mutate(perc_unins = uninsured / adult_pop,
-         post = (year >= 2014),
+  filter(expand_year == 2014 | is.na(expand_year)) %>%
+  mutate(post = (year >= 2014),
          treat = post * expand_ever)
 
-m.dd <- lm(formula = perc_unins ~ post + expand_ever + post * expand_ever, data = reg.data)
+dd.est <- lm(formula = perc_unins ~ post + expand_ever + treat, data = reg.data)
 
 ## Question 7 Include Fixed Effects --------------------------------------------
 
-m.twfe <- feols(fm = perc_unins ~ treat | State + year, data = reg.data)
+fe.est <- feols(fm = perc_unins ~ treat | State + year, data = reg.data)
 
 ## Question 8 Include Fixed Effects, Include All States ------------------------
-
-reg.data.all <- final.data %>%
-  filter(!is.na(expand_ever)) %>%
-  mutate(perc_unins = uninsured / adult_pop,
-         post = (year >= 2014),
-         treat = post * expand_ever,
-         time_to_treat = ifelse(expand_ever == TRUE, year - expand_year, -1),
-         time_to_treat = ifelse(time_to_treat <= -4, -4, time_to_treat))
-
-m.twfe.all <- feols(fm = perc_unins ~ treat | State + year, data = reg.data.all)
-
-## Question 9 Event Study ------------------------------------------------------
 
 reg.data2 <- final.data %>%
   mutate(treat = case_when(
@@ -144,13 +138,17 @@ reg.data2 <- final.data %>%
     year < expand_year & !is.na(expand_year) ~ 0)
   )
 
+fe.est2 <- feols(fm = perc_unins ~ treat | State + year, data = reg.data2)
+
+## Question 9 Event Study ------------------------------------------------------
+
 mod.twfe <- feols(fm = perc_unins ~ i(year, expand_ever, ref = 2013) | State + year,
                   cluster = ~State,
-                  data = reg.data2)
+                  data = reg.data)
 
-# q9.plot <-iplot(mod.twfe,
-#                 xlab="Time to Treatment",
-#                 main = "Event Study")
+# q9.plot <- iplot(mod.twfe,
+#                  xlab = "Time to Treatment",
+#                  main = "Event Study")
 
 q9.data <- data.frame(mod.twfe$coeftable) %>%
   select(estimate = Estimate, std.error = Std..Error) %>%
@@ -160,7 +158,8 @@ q9.data <- data.frame(mod.twfe$coeftable) %>%
 q9.plot <- q9.data %>%
   ggplot(aes(x = year, y = estimate)) +
   geom_point() +
-  geom_hline(yintercept = 0, color = "black", linetype = 2) +
+  geom_hline(yintercept = 0, color = "black", linetype = 1) +
+  geom_vline(xintercept = 2013, color = "black", linetype = 2) +
   geom_errorbar(aes(x = year, ymin = estimate - 1.96 * std.error, ymax = estimate + 1.96 * std.error), width = .1) +
   labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - States that Expanded in 2014 or Never Expanded") +
   theme_bw() + theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
@@ -174,11 +173,21 @@ q9.plot <- q9.data %>%
 
 ## Question 10 Event Study, Include All States ---------------------------------
 
-mod.twfe.all <- feols(fm = perc_unins ~ i(time_to_treat, expand_ever, ref = -1) | State + year,
-                      cluster = ~State,
-                      data = reg.data.all)
+reg.data2 <- reg.data2 %>%
+  mutate(time_to_treat = ifelse(expand_ever == TRUE, year - expand_year, -1),
+         time_to_treat = ifelse(time_to_treat <= -4, -4, time_to_treat))
+# not enough data points for time_to_treat beyond 4 years in the past,
+# since most states that have ever adopted expansion expanded in 2014
 
-q10.data <- data.frame(mod.twfe.all$coeftable) %>%
+mod.twfe2 <- feols(fm = perc_unins ~ i(time_to_treat, expand_ever, ref = -1) | State + year,
+                   cluster = ~State,
+                   data = reg.data2)
+
+# q10.plot <- iplot(mod.twfe2,
+#                   xlab = "Time to Treatment",
+#                   main = "Event Study")
+
+q10.data <- data.frame(mod.twfe2$coeftable) %>%
   select(estimate = Estimate, std.error = Std..Error) %>%
   mutate(year = c(-4:-2, 0:5)) %>%
   rbind(., "time_to_treat::-1:expand_ever" = c(0, 0, -1))
@@ -186,7 +195,8 @@ q10.data <- data.frame(mod.twfe.all$coeftable) %>%
 q10.plot <- q10.data %>%
   ggplot(aes(x = year, y = estimate)) +
   geom_point() +
-  geom_hline(yintercept = 0, color = "black", linetype = 2) +
+  geom_hline(yintercept = 0, color = "black", linetype = 1) +
+  geom_vline(xintercept = -1, color = "black", linetype = 2) +
   geom_errorbar(aes(x = year, ymin = estimate - 1.96 * std.error, ymax = estimate + 1.96 * std.error), width = .1, position = position_dodge(width = 0.5)) +
   labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - All States") +
   theme_bw() + theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
