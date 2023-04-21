@@ -1,8 +1,7 @@
-
 ## Title: ECON 470 HW4
 ## Author: Ben Yang
 ## Date Created: 3/22/2023
-## Date Edited: 4/16/2023
+## Date Edited: 4/21/2023
 ## Descriptions: This file renders/runs all relevant R code for the assignment
 
 ## Preliminaries ---------------------------------------------------------------
@@ -129,6 +128,8 @@ dd.est <- lm(formula = perc_unins ~ post + expand_ever + treat, data = reg.data)
 
 fe.est <- feols(fm = perc_unins ~ treat | State + year, data = reg.data)
 
+modelsummary(fe.est)
+
 ## Question 8 Include Fixed Effects, Include All States ------------------------
 
 reg.data2 <- final.data %>%
@@ -161,6 +162,7 @@ q9.plot <- q9.data %>%
   geom_hline(yintercept = 0, color = "black", linetype = 1) +
   geom_vline(xintercept = 2013, color = "black", linetype = 2) +
   geom_errorbar(aes(x = year, ymin = estimate - 1.96 * std.error, ymax = estimate + 1.96 * std.error), width = .1) +
+  scale_x_continuous(breaks = 2012:2019) +
   labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - States that Expanded in 2014") +
   theme_bw() + theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
   theme(
@@ -198,6 +200,7 @@ q10.plot <- q10.data %>%
   geom_hline(yintercept = 0, color = "black", linetype = 1) +
   geom_vline(xintercept = -1, color = "black", linetype = 2) +
   geom_errorbar(aes(x = year, ymin = estimate - 1.96 * std.error, ymax = estimate + 1.96 * std.error), width = .1, position = position_dodge(width = 0.5)) +
+  scale_x_continuous(breaks = -4:5) +
   labs(x = "Time to Treatment", y = "Estimate and 95 Percent Confidence Interval", Title = "Event Study for Effects of Medicaid Expansion - All ExpansionStates") +
   theme_bw() + theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
   theme(
